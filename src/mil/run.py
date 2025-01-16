@@ -7,10 +7,10 @@ import numpy as np
 from munch import Munch
 from sksurv.metrics import concordance_index_censored
 from copy import deepcopy
-# from lifelines import KaplanMeierFitter
+from lifelines import KaplanMeierFitter
 from sklearn.metrics import roc_auc_score, confusion_matrix, f1_score
 import random
-# from lifelines.statistics import logrank_test
+from lifelines.statistics import logrank_test
 from MIL import *
 from dataset_creation import *
 # from utility import train,evaluate
@@ -230,9 +230,10 @@ def step(net, batch, log_dict, task_type="Survival", device="cuda"):
              
     if len(labels.shape) == 1:
         labels = labels.reshape(-1,1)    
-
-    outputs = net(batch_data)
-
+    # print(batch_data)
+    
+    outputs, brca1, brca2 = net(batch_data)
+    ## put loss for brca1 and brca2
     if task_type == "Survival":
         censorships = batch['censorship'] #  check this casting
         censorships = censorships.to(device)     
@@ -259,6 +260,55 @@ def step(net, batch, log_dict, task_type="Survival", device="cuda"):
     log_dict["dataset_name"]+=(batch['dataset_name'])
     return outputs, labels, censorships, log_dict   
 
+def KaplanMeier(input_df): #Grafico che fa compare
+    df = pd.DataFrame({
+        "time": input_df['all_original_event_times']/365.0,
+        "event": input_df['all_censorships'], 
+        "risk_score": input_df['all_risk_scores']
+    })
+
+    # Step 2: Invert the event indicator if needed
+    # If currently event=1 means censored and event=0 means event occurred:
+    # KaplanMeierFitter expects 1 for event_occurred and 0 for censored.
+    df['event_observed'] = 1 - df['event']
+
+    # Step 3: Categorize the risk_score into two groups
+    df['risk_group'] = pd.qcut(df['risk_score'], 2, labels=["Low", "High"])
+
+    # Step 4: Fit the Kaplan-Meier curves for each group
+    kmf = KaplanMeierFitter()
+
+    plt.figure(figsize=(10, 6))
+    for group in df['risk_group'].unique():
+        mask = (df['risk_group'] == group)
+        kmf.fit(
+            durations=df.loc[mask, 'time'],
+            event_observed=df.loc[mask, 'event_observed'],
+            label=f"Risk: {group}"
+        )
+        kmf.plot_survival_function(ci_show=True)
+
+    # Step 5: Perform a log-rank test between the two groups (Low vs High)
+    low_mask = (df['risk_group'] == "Low")
+    high_mask = (df['risk_group'] == "High")
+
+    results = logrank_test(
+        durations_A=df.loc[low_mask, 'time'],
+        durations_B=df.loc[high_mask, 'time'],
+        event_observed_A=df.loc[low_mask, 'event_observed'],
+        event_observed_B=df.loc[high_mask, 'event_observed']
+    )
+
+    p_value = results.p_value
+    print("Log-rank test p-value:", p_value)
+
+    # Step 6: Customize the plot and include p-value in the title
+    plt.title(f"Kaplan-Meier Survival Curves by Risk Group\nLog-rank p-value: {p_value:.4f}")
+    plt.xlabel("Time (years)")
+    plt.ylabel("Survival Probability")
+    plt.legend(title='Risk Group')
+    plt.grid(True)
+    plt.show()
 
 def train(
             net, 
@@ -328,7 +378,9 @@ def train(
         tloss = np.array(tloss)
         tloss = np.mean(tloss) 
         trainLoss.append(tloss)
-        train_df = pd.DataFrame(log_dict)            
+        # print(log_dict)
+        train_df = pd.DataFrame(log_dict)   
+        print(train_df)
         train_df.to_hdf(f"{path}/train_df{df_fold_suffix}.h5", key="df", mode="w")
         train_metrics_dict = compute_metrics_df(train_df, task_type)
         train_metrics_df = pd.DataFrame(train_metrics_dict, index=[0])

@@ -37,6 +37,7 @@ TCGA_BRCA_dataset_config = {
       "censorships_name": "Survival",
       "case_id_name": "case_id",
       "slide_id_name": "slide_id",
+     
     }
 }
 TCGA_BRCA_dataset_config = Munch.fromDict(TCGA_BRCA_dataset_config)
@@ -58,8 +59,6 @@ class Multimodal_WSI_Genomic_Dataset(Dataset):
             
         self.datasets = {}
         for i, dataset_config in enumerate(datasets_configs):
-            # config = yaml.load(open(dataset_config, "r"), yaml.FullLoader)
-            # config = munchify(config)
             config = dataset_config
             if config.name in self.datasets:
                 raise ValueError("Dataset name {} already exists".format(config.name))
@@ -71,7 +70,10 @@ class Multimodal_WSI_Genomic_Dataset(Dataset):
                 rename_dict = { self.datasets[config.name].label_name: "time",
                                 self.datasets[config.name].censorships_name: "censorship",
                                 self.datasets[config.name].case_id_name: "case_id",
-                                self.datasets[config.name].slide_id_name: "slide_id"} 
+                                self.datasets[config.name].slide_id_name: "slide_id",
+                                
+                                
+                                } 
                 dataframe.rename(columns=rename_dict, inplace=True)
                 dataframe["time"] = dataframe["time"].astype(int)
                 self.case_id_name = "case_id"
@@ -85,6 +87,7 @@ class Multimodal_WSI_Genomic_Dataset(Dataset):
             genomics = pd.read_csv(config.parameters.genomics_path, sep="\t", dtype={'Unnamed: 0': str})
             genomics = genomics.set_index("Unnamed: 0").dropna()
             genomics = np.log(genomics+0.1)
+            # print(genomics)
             if i==0:
                 self.dataframe = dataframe
                 self.genomics = genomics
@@ -238,10 +241,16 @@ class Multimodal_WSI_Genomic_Dataset(Dataset):
         row  = self.patient_df.loc[index]
         genomics = torch.tensor(self.normalized_genomics.loc[index].values, dtype=torch.float32)
         dataset_name = row["dataset_name"]
+        # print(row)
+        # brca1_value = genomics[self.normalized_genomics.columns.get_loc("BRCA1")]
+        # brca2_value = genomics[self.normalized_genomics.columns.get_loc("BRCA2")]
         tissue_type_filter = self.datasets[dataset_name].tissue_type_filter
         slide_list = self.patient_dict[row[self.case_id_name]]
         patch_features, mask = self._load_wsi_embs_from_path(dataset_name, slide_list)
         label = row['label']
+        # print(label)
+        brca1 = row['BRCA1']
+        brca2 = row['BRCA2']
         if self.task_type == "Survival":
             censorship = row["censorship"]
             time = row["time"]
@@ -256,7 +265,9 @@ class Multimodal_WSI_Genomic_Dataset(Dataset):
                 'input':{   
                             'patch_features': patch_features, 
                             'mask': mask,
-                            'genomics':genomics # questa roba va nella forward
+                            'genomics':genomics, # questa roba va nella forwardM
+                            'brca_1': brca1,
+                            'brca_2': brca2
                         }, 
                 'label': label, 
                 'censorship': censorship, 
@@ -313,6 +324,8 @@ class ABMIL_Multimodal(nn.Module):
             final_layer_input_dim += inner_dim
             
         self.output_layer = nn.Linear(final_layer_input_dim, output_dim)
+        self.braca1_output_layer = nn.Linear(final_layer_input_dim, 1)  # BRCA1 (binary classification)
+        self.braca2_output_layer = nn.Linear(final_layer_input_dim, 1)  # BRCA2 (binary classification)
         
     def forward(self, data):
         # Extract patch features
@@ -354,8 +367,9 @@ class ABMIL_Multimodal(nn.Module):
             x = genomics_embedding
         
         output = self.output_layer(x)  # Shape: (batch_size, output_dim)
-        
-        return output
+        braca1_prediction = self.braca1_output_layer(x)
+        braca2_prediction = self.braca2_output_layer(x)
+        return output, braca1_prediction, braca2_prediction
 
 class NLLSurvLoss(nn.Module):
     """
