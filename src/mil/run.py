@@ -233,7 +233,9 @@ def step(net, batch, log_dict, task_type="Survival", device="cuda"):
     # print(batch_data)
     
     outputs, brca1, brca2 = net(batch_data)
-    ## put loss for brca1 and brca2
+
+    braca1_predictions = torch.sigmoid(brca1).detach().cpu()
+    braca2_predictions = torch.sigmoid(brca2).detach().cpu()
     if task_type == "Survival":
         censorships = batch['censorship'] #  check this casting
         censorships = censorships.to(device)     
@@ -245,6 +247,11 @@ def step(net, batch, log_dict, task_type="Survival", device="cuda"):
         log_dict["all_event_times"]+=(labels.detach().view(-1).tolist())
         log_dict["all_original_event_times"]+=(batch["original_event_time"].detach().view(-1).tolist())
         log_dict["survival_predictions"] += outputs.detach().tolist()
+        #brca_1 brca_2 pred
+        log_dict["braca1_predictions"] += braca1_predictions.numpy().flatten().tolist()
+        log_dict["braca1_labels"] += batch['BRCA1'].detach().cpu().numpy().tolist()
+        log_dict["braca2_predictions"] += braca2_predictions.numpy().flatten().tolist()
+        log_dict["braca2_labels"] += batch['BRCA2'].detach().cpu().numpy().tolist()
         if len(risk.shape) == 1:
             risk = risk.reshape(-1,1)    
     elif task_type == "Treatment_Response":
@@ -258,7 +265,7 @@ def step(net, batch, log_dict, task_type="Survival", device="cuda"):
                 
     log_dict["patient_ids"]+=(batch['patient_id'])
     log_dict["dataset_name"]+=(batch['dataset_name'])
-    return outputs, labels, censorships, log_dict   
+    return outputs, labels, censorships, log_dict, brca1, brca2
 
 def KaplanMeier(input_df): #Grafico che fa compare
     df = pd.DataFrame({
@@ -341,7 +348,7 @@ def train(
             print(f'\nStarting training for {kfold}')
         print('\nStarting epoch {}/{}, LR = {}'.format(epoch + 1, EPOCHS, scheduler.get_last_lr()))
         tloss = []
-
+        bce_loss_fn = nn.BCEWithLogitsLoss() 
         batch_numb = 0
         log_dict = {}
         net.train()
@@ -353,11 +360,16 @@ def train(
             if idx == 0:
                 log_dict = initialize_metrics_dict(task_type)
 
-            outputs, labels, censorships, log_dict = step(net, batch, log_dict, task_type, device)
+            outputs, labels, censorships, log_dict, brca1 ,brca2 = step(net, batch, log_dict, task_type, device)
             
             if MACHINE_BATCH_SIZE <= TARGET_BATCH_SIZE:
                 if task_type == "Survival":
+                    brca1_labels = batch["brca1"].to(device).float().view(-1, 1)
+                    brca2_labels = batch["brca2"].to(device).float().view(-1, 1)
                     loss = loss_function(outputs, labels, None, censorships)
+                    loss_brca1 = bce_loss_fn(brca1, brca1_labels)
+                    loss_brca2 = bce_loss_fn(brca2, brca2_labels)
+                    loss = loss + loss_brca1 + loss_brca2 #differsent weights?
                 elif task_type == "Treatment_Response":
                     loss = loss_function(outputs, labels.squeeze(1))
                 else:
