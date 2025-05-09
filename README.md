@@ -1,3 +1,22 @@
+## Train and Test Overexpression models
+
+It is sufficient to run the scripts `train.py` and `test.py`. To train the DSMIL and DS_ABMIL models, it is necessary to run the corresponding files within the `MIL` folder.
+
+
+## How to Run Over-expression demo
+
+Launch one of the following files with access to an NVIDIA GPU:
+
+- `attention_map.py`
+- `old_attention_map.py`
+
+Both files provide predictions for the overexpression of BRCA1. The first file provides an attention map with internal attention for each patch, while the second file only provides attention on the patches.
+Both scripts expect the following command-line arguments:
+
+- `-m` to specify the model ID to test. The models must be located in the current folder and have the following name format: `model_weights_X.pth`, where X is the ID. The default is `0`.
+- `-s` to specify the patient ID to test. The default is `'TCGA-E2-A155'`.
+
+
 ## How to Run Overall Survival demo
 
 ### 1. Submit the Demo Job
