@@ -36,11 +36,11 @@ You should now see the current interface: ![](img/demo1.png)
 
 Once the demo interface is visible at `http://localhost:8501`, follow these steps:
 
-1. **Select the model weights**  
+1. **Select the model MCAT weights**  
    At the top of the interface, you'll find a file selector or dropdown to choose the model weights.  
    You can download the available weight files from the following link:
 
-   👉 [Download model weights from Google Drive](https://drive.google.com/your-link-here)
+   👉 [Download model weights from Google Drive](https://drive.google.com/drive/folders/1AEz8LCSWBxUGjOxhNfpERG4iOjh6uh1H?usp=drive_link)
 
 
 2. **Enter the Patient ID**  
@@ -51,4 +51,15 @@ Once the demo interface is visible at `http://localhost:8501`, follow these step
    After selecting the weights and entering the patient ID, click on "Run Prediction" in order to display the results.
 
 > ⚠️ If no weights are selected or the patient ID is invalid, the application may show an error or fail to produce results.
+
 ![](img/demo2.png)
+
+### 5. Results
+- Patient ID: TCGA-E2-A155 ![](img/demo3.png)
+- Patient ID: TCGA-EW-A2FW ![](img/demo4.png)
+  
+## Overall Survival evaluation
+This notebook contains the results exactly as presented in the paper.
+
+📍 Path to the notebook:  
+`/work/ai4bio2024/brca_surv/survival/evaluation.ipynb`
