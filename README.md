@@ -30,7 +30,7 @@ After port forwarding is set up, open your browser and navigate to:
 
 http://localhost:8501
 
-You should now see the current interface: ![](img/demo1.jpg)
+You should now see the current interface: ![](img/demo1.png)
 
 ### 4. Select the Model Weights and Enter Patient ID
 
@@ -51,4 +51,4 @@ Once the demo interface is visible at `http://localhost:8501`, follow these step
    After selecting the weights and entering the patient ID, click on "Run Prediction" in order to display the results.
 
 > ⚠️ If no weights are selected or the patient ID is invalid, the application may show an error or fail to produce results.
-![](img/demo2.jpg)
+![](img/demo2.png)
