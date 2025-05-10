@@ -87,7 +87,7 @@ You should now see the current interface: ![](img/demo1.png)
 
 Once the demo interface is visible at `http://localhost:8501`, follow these steps:
 
-1. **Select the model MCAT weights**  
+1. **Select the MCAT weights**  
    At the top of the interface, you'll find a file selector or dropdown to choose the model weights.  
    You can download the available weight files from the following link:
 
