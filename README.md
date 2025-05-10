@@ -16,6 +16,34 @@ Both scripts expect the following command-line arguments:
 - `-m` to specify the model ID to test. The models must be located in the current folder and have the following name format: `model_weights_X.pth`, where X is the ID. The default is `0`.
 - `-s` to specify the patient ID to test. The default is `'TCGA-E2-A155'`.
 
+## Train Overall Survival models
+
+#### MCAT
+
+- **With CAB**  
+  ```bash
+  sbatch train_MCAT_cab.sh
+  ```
+- **Without CAB**  
+  ```bash
+  sbatch train_MCAT.sh
+  ```
+#### MCAT (BRCA1 and BRCA2)
+
+- ```bash
+  sbatch train_sh/train_MCAT.sh
+  ```
+#### SurvPath
+
+- **With CAB**  
+  ```bash
+  sbatch train_SurvPath_cab.sh
+  ```
+- **Without CAB**  
+  ```bash
+  sbatch train_SurvPath.sh
+  ```
+  
 
 ## How to Run Overall Survival demo
 
