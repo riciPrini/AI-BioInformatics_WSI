@@ -34,7 +34,11 @@ Both scripts expect the following command-line arguments:
   sbatch train_sh/train_MCAT.sh
   ```
 #### SurvPath
-
+Before running SurvPath, you must first navigate to the appropriate directory:
+```bash
+cd /work/ai4bio2024/brca_surv/survival/SurvPath
+```
+Then run:
 - **With CAB**  
   ```bash
   sbatch train_SurvPath_cab.sh
