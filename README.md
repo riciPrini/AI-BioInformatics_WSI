@@ -1,116 +1,139 @@
-## Train and Test Overexpression models
+# Intercepting Driver Mutations in WSI
 
-It is sufficient to run the scripts `train.py` and `test.py`. To train the DSMIL and DS_ABMIL models, it is necessary to run the corresponding files within the `MIL` folder.
+A deep learning approach for identifying BRCA gene over-expression and predicting overall survival in breast cancer patients using whole-slide histopathological images.
+![](img/attention_map_val_MCAT_distillation.png)
+## 📋 Table of Contents
+- [Overview](#overview)
+- [Features](#features)
+- [Dataset](#dataset)
+- [Models](#models)
+- [Results](#results)
+- [Visualization](#visualization)
 
 
-## How to Run Over-expression demo
+## 🔬 Overview
 
-Launch one of the following files with access to an NVIDIA GPU:
+This project develops computational models to extract clinically relevant information from histopathological images for breast cancer molecular stratification. Our approach focuses on two main objectives:
 
-- `attention_map.py`
-- `old_attention_map.py`
+1. **BRCA Expression Classification**: Distinguishing between breast cancer patients with BRCA1/BRCA2 over-expression vs. under-expression
+2. **Overall Survival Prediction**: Predicting clinical outcomes by integrating visual and molecular data
 
-Both files provide predictions for the overexpression of BRCA1. The first file provides an attention map with internal attention for each patch, while the second file only provides attention on the patches.
-Both scripts expect the following command-line arguments:
+## ✨ Features
 
-- `-m` to specify the model ID to test. The models must be located in the current folder and have the following name format: `model_weights_X.pth`, where X is the ID. The default is `0`.
-- `-s` to specify the patient ID to test. The default is `'TCGA-E2-A155'`.
+- **Multiple Instance Learning (MIL)** architectures for WSI analysis
+- **Multimodal fusion** of histopathological images and genomic data
+- **Attention visualization** for model interpretability
+- **Cross-modal learning** with Cross-Modal Associating Branch (CAB)
+- **Robust evaluation** using stratified K-fold cross-validation
 
-## Train Overall Survival models
+## 📊 Dataset
 
-#### MCAT
+The project uses data from the **TCGA-BRCA cohort** obtained through the Genomic Data Commons (GDC) portal:
 
-- **With CAB**  
-  ```bash
-  sbatch train_MCAT_cab.sh
-  ```
-- **Without CAB**  
-  ```bash
-  sbatch train_MCAT.sh
-  ```
-#### MCAT (BRCA1 and BRCA2)
+- **Images**: Whole-slide histopathological images
+- **Molecular data**: BRCA1/BRCA2 gene expression values
+- **Normalization metrics**: TPM unstranded and FPKM unstranded
+- **Labeling strategy**: Data-driven threshold based on expression distribution mode
 
-- ```bash
-  sbatch train_sh/train_MCAT.sh
-  ```
-#### SurvPath
-Before running SurvPath, you must first navigate to the appropriate directory:
-```bash
-cd /work/ai4bio2024/brca_surv/survival/SurvPath
+### Data Preprocessing
+- Threshold-based classification using probability distribution analysis
+- Class balancing considerations for over-expression vs. under-expression
+- Feature extraction using UNI embeddings (n_patches × 1024)
+
+## 🤖 Models
+
+### BRCA Expression Classification
+
+#### 1. ABMIL (Attention-based MIL)
+- Gated attention mechanism with linear dimensionality reduction
+- Attention computation: `att = exp{W^T tanh(Vh^T) ⊙ σ(Uh^T)} / Σ exp{...}`
+
+#### 2. DSMIL (Dual-Stream MIL)
+- Two-stream architecture with instance and bag classifiers
+- Critical instance extraction for bag representation
+
+#### 3. DS ABMIL (Our Contribution)
+- Novel hybrid approach combining DSMIL structure with ABMIL attention
+- Most robust performance across hyperparameter variations
+
+### Survival Prediction
+
+#### 1. MCAT (Modality Complementary Attention Transformer)
+- Cross-modal co-attention for visual and genomic fusion
+- Enhanced with Cross-Modal Associating Branch (CAB)
+
+#### 2. G-HANet (Genomic Attention-based Hierarchical Network)
+- Multi-level attention mechanisms
+- Source of inspiration for CAB integration
+
+#### 3. SurvPath
+- Biologically-informed architecture with pathway modeling
+- Graph Neural Network processing of molecular interactions
+
+### Requirements
+- Python 3.8+
+- PyTorch 1.9+
+- torchvision
+- pandas
+- numpy
+- scikit-learn
+- matplotlib
+- seaborn
+- opencv-python
+
+
+
+## 📈 Results
+
+### BRCA Expression Classification Performance
+
+| Model | Accuracy | Precision | Recall | AUC-ROC | True Positive Rate |
+|-------|----------|-----------|---------|---------|-------------------|
+| ABMIL | 0.682 ± 0.016 | 0.699 ± 0.004 | 0.918 ± 0.041 | 0.620 ± 0.012 | 0.214 ± 0.039 |
+| DSMIL | 0.695 ± 0.008 | 0.700 ± 0.007 | 0.950 ± 0.019 | 0.633 ± 0.012 | 0.189 ± 0.038 |
+| **DS ABMIL** | **0.684 ± 0.009** | **0.703 ± 0.012** | **0.906 ± 0.038** | **0.621 ± 0.018** | **0.237 ± 0.074** |
+
+### Survival Prediction Performance (C-Index)
+
+| Model | Max C-Index | Mean ± Std |
+|-------|-------------|-------------|
+| MCAT | 0.696 | 0.578 ± 0.131 |
+| **MCAT + CAB** | **0.719** | **0.578 ± 0.085** |
+| SurvPath | 0.772 | 0.656 ± 0.119 |
+| SurvPath + CAB | 0.733 | 0.564 ± 0.132 |
+
+## 🔍 Visualization
+
+The project includes comprehensive attention visualization capabilities:
+
+### Patch-Level Attention
+- Normalized attention scores overlaid on WSI thumbnails
+- Heat-map visualization showing region importance
+
+### Inner-Patch Activation
+- ResNet50-based activation mapping within patches
+- Gaussian smoothing for seamless visualization
+- Threshold filtering for high-confidence regions
+
+### Usage Example
+```python
+from visualization import generate_attention_map
+
+# Generate attention map
+attention_map = generate_attention_map(
+    model=trained_model,
+    wsi_path="path/to/slide.svs",
+    patch_level=True,
+    inner_patch=True
+)
 ```
-Then run:
-- **With CAB**  
-  ```bash
-  sbatch train_SurvPath_cab.sh
-  ```
-- **Without CAB**  
-  ```bash
-  sbatch train_SurvPath.sh
-  ```
-  
 
-## How to Run Overall Survival demo
+## 📋 Key Findings
 
-### 1. Submit the Demo Job
-
-To start the demo, simply run the following command from the project directory:
-
-```bash
-sbatch demoOS.sh
-```
-
-This will submit a job to the cluster which runs the demo server (e.g., a Streamlit app) on a specific node.
-### 2. Set Up Port Forwarding in VSCode
-
-Once the job starts, check the node name where it is running (e.g., ajeje or pippobaudo). Then, in VSCode:
-
-1. Go to the Port Forwarding tab.
-2.  Add a forwarded port with this format:
-```bash
-node_name:8501
-```
-Example:
-```bash
-ajeje:8501
-```
-  Make sure port ```8501``` is open and not used by other processes.
-
-### 3. Access the Demo Locally
-
-After port forwarding is set up, open your browser and navigate to:
-
-http://localhost:8501
-
-You should now see the current interface: ![](img/demo1.png)
-
-### 4. Select the Model Weights and Enter Patient ID
-
-Once the demo interface is visible at `http://localhost:8501`, follow these steps:
-
-1. **Select the MCAT weights**  
-   At the top of the interface, you'll find a file selector or dropdown to choose the model weights.  
-   You can download the available weight files from the following link:
-
-   👉 [Download model weights from Google Drive](https://drive.google.com/drive/folders/1AEz8LCSWBxUGjOxhNfpERG4iOjh6uh1H?usp=drive_link)
+1. **Class Imbalance Challenge**: All models struggle with under-expressed class detection due to dataset imbalance
+2. **Parameter Sensitivity**: Increased model complexity often leads to overfitting on the dominant class
+3. **DS ABMIL Robustness**: Our hybrid model shows superior stability across hyperparameter variations
+4. **CAB Effectiveness**: Cross-Modal Associating Branch improves MCAT performance but shows limited benefit in SurvPath
+5. **Attention Interpretability**: Generated visualizations provide valuable insights into model decision-making
 
 
-2. **Enter the Patient ID**  
-   Below the model selection, there will be a field where you can input a **Patient ID**.  
-   This ID should match one of the available cases in the dataset used by the model.
-
-3. **Run the analysis**  
-   After selecting the weights and entering the patient ID, click on "Run Prediction" in order to display the results.
-
-> ⚠️ If no weights are selected or the patient ID is invalid, the application may show an error or fail to produce results.
-
-![](img/demo2.png)
-
-### 5. Results
-- Patient ID: TCGA-E2-A155 ![](img/demo3.png)
-- Patient ID: TCGA-EW-A2FW ![](img/demo4.png)
-  
-## Overall Survival evaluation
-This notebook contains the results exactly as presented in the paper.
-
-📍 Path to the notebook:  
-`/work/ai4bio2024/brca_surv/survival/evaluation.ipynb`
