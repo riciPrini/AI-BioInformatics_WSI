@@ -1,6 +1,7 @@
 # Intercepting Driver Mutations in WSI
 
 A deep learning approach for identifying BRCA gene over-expression and predicting overall survival in breast cancer patients using whole-slide histopathological images.
+
 ![](img/attention_map_val_MCAT_distillation.png)
 ## 📋 Table of Contents
 - [Overview](#overview)
@@ -115,18 +116,6 @@ The project includes comprehensive attention visualization capabilities:
 - Gaussian smoothing for seamless visualization
 - Threshold filtering for high-confidence regions
 
-### Usage Example
-```python
-from visualization import generate_attention_map
-
-# Generate attention map
-attention_map = generate_attention_map(
-    model=trained_model,
-    wsi_path="path/to/slide.svs",
-    patch_level=True,
-    inner_patch=True
-)
-```
 
 ## 📋 Key Findings
 
